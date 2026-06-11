@@ -91,11 +91,11 @@ KernelLibrary& get_kernel_library() {
 
         path_buffer.resize(path_length);
         package_dir = fs::path(path_buffer).parent_path();
-        for (auto& entry : std::filesystem::directory_iterator(package_dir))
+        for (auto& entry : std::filesystem::directory_iterator(package_dir / "lgrf_uni"))
         {
             auto name = entry.path().filename().string();
-
-            if (name.starts_with("lgrf_sdp") && entry.path().extension() == ".pyd")
+            // find string C++17 native
+            if (name.rfind("lgrf_sdp", 0) == 0 && entry.path().extension() == ".pyd")
             {
                 auto library_path = entry.path();
                 library.handle = LoadLibraryA(library_path.string().c_str());
@@ -103,9 +103,13 @@ KernelLibrary& get_kernel_library() {
                     load_error = "failed to load lgrf sidecar at " + library_path.string();
                     return;
                 }
+
+                // load success
+                break;
             }
         }
         
+        // not found any path
         if (library.handle == nullptr) {
             load_error = "failed to load lgrf sidecar at lgrf_sdp.*.pyd!";
             return;
