@@ -126,8 +126,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r comfyui_controlnet_aux/requirements.txt && \
     git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git && \
     cd ComfyUI-KJNodes && \
-    git fetch --depth 1 origin c6ce76d00bb8177d1b0286cad891df08eff5226e && \
-    git checkout c6ce76d00bb8177d1b0286cad891df08eff5226e && \
+    git fetch --depth 1 origin a41e0d85b822ddc4bbd1256417aa2d58d39e94ce && \
+    git checkout a41e0d85b822ddc4bbd1256417aa2d58d39e94ce && \
     pip install -r requirements.txt && \
     cd /llm/ComfyUI/custom_nodes && \
     git clone --depth 1 https://github.com/Jasonzzt/ComfyUI-CacheDiT.git && \
@@ -150,7 +150,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     cd ComfyUI-nunchaku-XPU && \
     git fetch --depth 1 origin 1b78483a6af31297d5291f61965502079aed3407 && \
     git checkout 1b78483a6af31297d5291f61965502079aed3407 && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    pip install --no-deps kernels==0.14.0
 
 # ComfyUI disabled custom nodes (optional: --build-arg INSTALL_DISABLED_NODES=true)
 ARG INSTALL_DISABLED_NODES=true
