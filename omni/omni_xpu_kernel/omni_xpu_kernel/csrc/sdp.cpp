@@ -91,15 +91,31 @@ KernelLibrary& get_kernel_library() {
 
         path_buffer.resize(path_length);
         package_dir = fs::path(path_buffer).parent_path();
-        fs::path library_path = package_dir / "lgrf_uni" / "lgrf_sdp.pyd";
-        library.handle = LoadLibraryW(library_path.wstring().c_str());
+        for (auto& entry : std::filesystem::directory_iterator(package_dir))
+        {
+            auto name = entry.path().filename().string();
+
+            if (name.starts_with("lgrf_sdp") && entry.path().extension() == ".pyd")
+            {
+                auto library_path = entry.path();
+                library.handle = LoadLibraryA(library_path.string().c_str());
+                if (library.handle == nullptr) {
+                    load_error = "failed to load lgrf sidecar at " + library_path.string();
+                    return;
+                }
+            }
+        }
+        
         if (library.handle == nullptr) {
-            load_error = "failed to load lgrf sidecar at " + library_path.string();
+            load_error = "failed to load lgrf sidecar at lgrf_sdp.*.pyd!";
             return;
         }
 
-        library.fp16 = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_fp16"));
-        library.bf16io = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_bf16io"));
+        library.fp16        = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_fp16"));
+        library.bf16io      = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_bf16io"));
+        library.fp16_fast   = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_fp16_fast"));
+        library.fp16_hd64   = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_fp16_hd64"));
+        library.bf16io_hd64 = reinterpret_cast<sdp_kernel_fn>(GetProcAddress(library.handle, "sdp_bf16io_hd64"));
 #else
         Dl_info current_module_info;
         if (dladdr(reinterpret_cast<void*>(&get_kernel_library), &current_module_info) == 0 || current_module_info.dli_fname == nullptr) {
@@ -323,7 +339,7 @@ torch::Tensor sdp(torch::Tensor q, torch::Tensor k, torch::Tensor v) {
     }
 
     auto out = torch::empty_like(q);
-    sycl::queue& queue = utils::get_queue(q.device());
+    sycl::queue queue = utils::get_queue(q.device());
     const int64_t head_dim = q.size(3);
 
     // Dispatch based on dtype and head_dim

@@ -27,6 +27,11 @@ from setuptools.command.build_ext import build_ext
 IS_WINDOWS = platform.system() == "Windows"
 
 
+import importlib.util
+spec = importlib.util.find_spec("torch")
+torch_dir = Path(spec.origin).parent
+print("current torch dir:", torch_dir)
+
 def get_icpx_path():
     """Find Intel icpx compiler."""
     # On Windows, the compiler is icx.exe (for C++) or icpx is a symlink
@@ -67,6 +72,7 @@ class ICPXBuildExt(build_ext):
     """Build extension using Intel icpx compiler directly."""
     
     def build_extension(self, ext):
+        print("starting build_extension().....")
         # Find compiler
         icpx = get_icpx_path()
         if not icpx:
@@ -86,21 +92,34 @@ class ICPXBuildExt(build_ext):
         print(f"Building for platform: {'Windows' if IS_WINDOWS else 'Linux'}")
         
         # Get paths from torch
-        import torch
-        torch_dir = Path(torch.__file__).parent
+        print(("# try import torch...."))
+        import importlib.util
+        spec = importlib.util.find_spec("torch")
+        torch_dir = Path(spec.origin).parent
+
+        # import torch
+        # torch_dir = Path(torch.__file__).parent
+        print(("# imported torch., dir", torch_dir))
+        # torch_dir = Path(r"C:\ComfyUI\venv\Lib\site-packages\torch")
         torch_include = torch_dir / "include"
         torch_lib = torch_dir / "lib"
+        print(("# Get paths from torch"))
         
         # Get Python include
         import sysconfig
         python_include = sysconfig.get_path("include")
         ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
+        print(("# Get Python include"))
+
         
         # Output paths
         output_path = Path(self.get_ext_fullpath(ext.name))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         is_lgrf = ext.name.endswith("lgrf_sdp")
+
+        print(("# Source directory"))
+
         
         # Source directory
         if is_lgrf:
@@ -143,12 +162,14 @@ class ICPXBuildExt(build_ext):
         
         if IS_WINDOWS:
             # Windows compile command using icx
-            python_lib_dir = sysconfig.get_config_var("LIBDIR") or str(Path(sys.executable).parent / "libs")
+            # python_lib_dir = sysconfig.get_config_var("LIBDIR") or str(Path(sys.executable).parent / "libs")
+            python_lib_dir = sysconfig.get_config_var("LIBDIR") or str(Path(sys.base_prefix) / "libs")
             python_version = f"{sys.version_info.major}{sys.version_info.minor}"
             
             cmd = [
                 icpx,
                 "-fsycl",
+                "/DNOMINMAX",
             ]
             
             if is_lgrf:
@@ -170,6 +191,12 @@ class ICPXBuildExt(build_ext):
                     "/O2", "/DNDEBUG",
                     "/EHsc",  # Enable C++ exception handling
                     "/std:c++17",
+                ]
+
+                # use we dnnl from local installed before torch include
+                if has_onednn:
+                    cmd.append(f"/I{onednn_include}")
+                cmd += [
                     f"/I{python_include}",
                     f"/I{torch_include}",
                     f"/I{torch_include}\\torch\\csrc\\api\\include",
@@ -177,8 +204,6 @@ class ICPXBuildExt(build_ext):
                     "/LD",  # Create DLL
                     f"/Fe:{output_path}",  # Output file
                 ]
-                if has_onednn:
-                    cmd.append(f"/I{onednn_include}")
                 cmd += [str(s) for s in sources] + [
                     f"/link",
                     f"/LIBPATH:{torch_lib}",

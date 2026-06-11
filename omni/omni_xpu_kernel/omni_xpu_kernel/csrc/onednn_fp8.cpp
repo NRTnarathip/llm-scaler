@@ -319,7 +319,7 @@ void onednn_w8a16_fp8_impl(
     const torch::Device& device,
     DT weight_type = DT::f8_e4m3
 ) {
-    sycl::queue& queue = utils::get_queue(device);
+    sycl::queue queue = utils::get_queue(device);
     auto state = get_or_create_fp8_primitive_state<InputType>(m, k, n, bias != nullptr, device, queue, weight_type);
     dnnl::stream stream = dnnl::sycl_interop::make_stream(state->engine, queue);
 

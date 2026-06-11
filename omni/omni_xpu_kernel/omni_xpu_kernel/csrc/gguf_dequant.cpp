@@ -179,7 +179,6 @@ void dequantize_q4_k_kernel(
 ) {
     constexpr int WG_SIZE = 64;
     const int64_t padded_size = (n_blocks + WG_SIZE - 1) / WG_SIZE * WG_SIZE;
-    
     auto cgf = [&](sycl::handler& handle) {
         handle.parallel_for(
             sycl::nd_range<1>(sycl::range<1>(padded_size), sycl::range<1>(WG_SIZE)),
@@ -262,7 +261,6 @@ void dequantize_q4_k_kernel(
             }
         );
     };
-    
     utils::submit_kernel(cgf, device, "dequantize_q4_k");
 }
 

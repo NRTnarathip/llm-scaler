@@ -15,6 +15,12 @@ Usage::
     from omni_xpu_kernel import svdq, norm, rotary, gguf, sdp, linear
 """
 
+from . import linear
+from . import sdp
+from . import rotary
+from . import svdq
+from . import norm
+from . import gguf
 import os
 import sys
 
@@ -24,12 +30,20 @@ __author__ = "Intel"
 # Lazy loading of native extension
 _native_module = None
 
+# Prepare dll directory for Windows
+if sys.platform == "win32":
+    from pathlib import Path
+    oneapi_root = Path(os.environ.get("ONEAPI_ROOT", ""))
+    os.add_dll_directory(oneapi_root / "compiler/2025.3/bin")
+    os.add_dll_directory(oneapi_root / "dnnl/2025.3/bin")
+
+
 def _load_extension():
     """Load the native C++ extension module."""
     global _native_module
     if _native_module is not None:
         return _native_module
-    
+
     try:
         from omni_xpu_kernel import _C
         _native_module = _C
@@ -52,12 +66,6 @@ def is_available():
 
 
 # Submodule imports
-from . import gguf
-from . import norm
-from . import svdq
-from . import rotary
-from . import sdp
-from . import linear
 
 __all__ = [
     "gguf",

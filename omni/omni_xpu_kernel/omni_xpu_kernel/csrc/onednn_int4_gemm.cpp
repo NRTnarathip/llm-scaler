@@ -55,7 +55,7 @@ static std::pair<dnnl::engine, dnnl::stream>& ensure_engine_initialized(const to
     auto it = g_engine_map.find(dev_idx);
     if (it != g_engine_map.end()) return it->second;
 
-    sycl::queue& q = omni_xpu::utils::get_queue(device);
+    sycl::queue q = omni_xpu::utils::get_queue(device);
     auto eng = dnnl::sycl_interop::make_engine(q.get_device(), q.get_context());
     auto strm = dnnl::sycl_interop::make_stream(eng, q);
     auto [ins, _] = g_engine_map.emplace(dev_idx, std::make_pair(std::move(eng), std::move(strm)));

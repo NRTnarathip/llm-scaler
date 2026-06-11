@@ -54,7 +54,7 @@ inline bool is_enabled(const char* module) {
 namespace utils {
 
 // Get SYCL queue from PyTorch XPU device
-inline sycl::queue& get_queue(const torch::Device& device) {
+inline sycl::queue get_queue(const torch::Device& device) {
 #if TORCH_VERSION_MAJOR >= 2 && TORCH_VERSION_MINOR >= 3
     return c10::xpu::getCurrentXPUStream(device.index()).queue();
 #else
@@ -72,14 +72,19 @@ inline sycl::event submit_kernel(
     const at::Device& device,
     [[maybe_unused]] const char* desc
 ) {
-    sycl::queue& queue = get_queue(device);
+    // printf("[Begin] utils::submit_kernel()...\n");
+    sycl::queue queue = get_queue(device);
+    // printf("getted queue\n");
     sycl::event event = queue.submit(std::forward<KernelFunc>(kernel));
+    // printf("done queue.submit(....)\n");
 #if TORCH_VERSION_MAJOR >= 2 && TORCH_VERSION_MINOR >= 3
     // Profiler support for newer versions
     // xpu::profiler_record(desc, event);
 #else
+    // printf("profiler_record()....\n");
     xpu::profiler_record(desc, event);
 #endif
+    // printf("[END] return event;\n");
     return event;
 }
 
